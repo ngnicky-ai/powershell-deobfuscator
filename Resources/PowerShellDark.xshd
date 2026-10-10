@@ -1,0 +1,80 @@
+<?xml version="1.0"?>
+<SyntaxDefinition name="PowerShellDark" extensions=".ps1;.psm1;.psd1" xmlns="http://icsharpcode.net/sharpdevelop/syntaxdefinition/2008">
+  <Color name="Comment" foreground="#6A9955" fontStyle="italic" />
+  <Color name="String" foreground="#E5C07B" />
+  <Color name="Variable" foreground="#7DD3FC" />
+  <Color name="Keyword" foreground="#C792EA" fontWeight="bold" />
+  <Color name="Operator" foreground="#F78C6C" />
+  <Color name="Cmdlet" foreground="#82AAFF" fontWeight="bold" />
+  <Color name="Danger" foreground="#FF5370" fontWeight="bold" />
+  <Color name="Type" foreground="#4EC9B0" />
+  <Color name="Number" foreground="#F7B267" />
+  <Color name="Url" foreground="#FF6B9A" underline="true" />
+
+  <RuleSet ignoreCase="true">
+    <Span color="Comment" multiline="true">
+      <Begin>&lt;\#</Begin>
+      <End>\#&gt;</End>
+    </Span>
+    <Span color="Comment">
+      <Begin>\#</Begin>
+    </Span>
+    <Span color="String" multiline="true">
+      <Begin>@"</Begin>
+      <End>"@</End>
+      <RuleSet>
+        <Rule color="Url">(?:https?|ftp|stratum\+(?:tcp|ssl))://[^\s'"`]+</Rule>
+        <Rule color="Variable">\$[\w:]+</Rule>
+      </RuleSet>
+    </Span>
+    <Span color="String" multiline="true">
+      <Begin>@'</Begin>
+      <End>'@</End>
+    </Span>
+    <Span color="String">
+      <Begin>"</Begin>
+      <End>"</End>
+      <RuleSet>
+        <Span begin="`" end="." />
+        <Rule color="Url">(?:https?|ftp|stratum\+(?:tcp|ssl))://[^\s'"`]+</Rule>
+        <Rule color="Variable">\$\{[^}]+\}|\$[\w:]+</Rule>
+      </RuleSet>
+    </Span>
+    <Span color="String">
+      <Begin>'</Begin>
+      <End>'</End>
+      <RuleSet>
+        <Span begin="''" end="" />
+        <Rule color="Url">(?:https?|ftp|stratum\+(?:tcp|ssl))://[^\s'"`]+</Rule>
+      </RuleSet>
+    </Span>
+
+    <Rule color="Variable">\$\{[^}]+\}|\$[\w:?^$]+</Rule>
+    <Rule color="Type">\[[A-Za-z_][\w.\[\],` ]*\]</Rule>
+
+    <Keywords color="Keyword">
+      <Word>if</Word><Word>else</Word><Word>elseif</Word><Word>foreach</Word><Word>for</Word>
+      <Word>while</Word><Word>do</Word><Word>until</Word><Word>switch</Word><Word>function</Word>
+      <Word>filter</Word><Word>return</Word><Word>break</Word><Word>continue</Word><Word>try</Word>
+      <Word>catch</Word><Word>finally</Word><Word>throw</Word><Word>param</Word><Word>begin</Word>
+      <Word>process</Word><Word>end</Word><Word>in</Word><Word>trap</Word><Word>exit</Word>
+      <Word>class</Word><Word>using</Word>
+    </Keywords>
+
+    <Keywords color="Danger">
+      <Word>Invoke-Expression</Word><Word>iex</Word><Word>Invoke-Item</Word><Word>Start-Process</Word>
+      <Word>DownloadFile</Word><Word>DownloadString</Word><Word>DownloadData</Word><Word>Invoke-WebRequest</Word>
+      <Word>iwr</Word><Word>Invoke-RestMethod</Word><Word>irm</Word><Word>Start-BitsTransfer</Word>
+      <Word>FromBase64String</Word><Word>Load</Word><Word>Create</Word><Word>Set-MpPreference</Word>
+      <Word>Add-MpPreference</Word><Word>Register-ScheduledTask</Word><Word>schtasks</Word>
+      <Word>Set-ItemProperty</Word><Word>New-ItemProperty</Word><Word>Clear-History</Word>
+      <Word>wscript</Word><Word>cscript</Word><Word>mshta</Word><Word>rundll32</Word><Word>regsvr32</Word>
+      <Word>netsh</Word><Word>vssadmin</Word><Word>bcdedit</Word><Word>wevtutil</Word><Word>Expand-Archive</Word>
+      <Word>VirtualAlloc</Word><Word>CreateThread</Word><Word>WriteProcessMemory</Word><Word>Add-Type</Word>
+    </Keywords>
+
+    <Rule color="Cmdlet">\b[A-Z][a-z]+-[A-Z][A-Za-z]+\b</Rule>
+    <Rule color="Operator">-(?:eq|ne|gt|ge|lt|le|like|notlike|match|notmatch|replace|split|join|f|bxor|band|bor|not|and|or|xor|contains|in|notin|is|isnot|as)\b</Rule>
+    <Rule color="Number">\b0x[0-9a-fA-F]+\b|\b\d+(\.\d+)?\b</Rule>
+  </RuleSet>
+</SyntaxDefinition>

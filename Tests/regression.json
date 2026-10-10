@@ -1,0 +1,413 @@
+{
+  "version": 1,
+  "cases": [
+    {
+      "name": "sample01 — Emotet 계열 다운로더 (-enc, 문자열 분할)",
+      "file": "../../sample/powershell01.txt",
+      "sha256": "2efdbd24586f490efab876b8fc33ad8cea9a65541135bfd9653f0e3b118f59dd",
+      "minDepth": 1,
+      "minLayers": 2,
+      "minRisk": 79,
+      "classificationContains": [
+        "다운로더"
+      ],
+      "rules": [
+        "DLF",
+        "DRP",
+        "ENC",
+        "FBK",
+        "IVI",
+        "MAS",
+        "WCL"
+      ],
+      "iocs": [
+        "http://52550750-56-20180826151453.webstarterz.com/savewayexpressthai.com/jnze_2o3j_k/",
+        "http://oubaina.com/wp-includes/lqkz_nvr_1avf4/",
+        "https://www.msbc.kz/data/k527_5_cbdvv5bi19/",
+        "http://okcupidating.com/im/fsq_esj_qgx060p/",
+        "http://bike-nomad.com/cgi-bin/7n_0x0_62mnzyh9q/",
+        "52550750-56-20180826151453.webstarterz.com",
+        "oubaina.com",
+        "www.msbc.kz",
+        "okcupidating.com",
+        "bike-nomad.com",
+        "savewayexpressthai.com"
+      ],
+      "forbiddenIocs": [
+        "ad.com"
+      ],
+      "layerContains": [
+        "Z0fv3kbg.exe",
+        "DownloadFile"
+      ],
+      "maxEngineGaps": 0,
+      "note": null
+    },
+    {
+      "name": "sample02 — 크립토마이너 (kryptex, Run 키)",
+      "file": "../../sample/powershell02.txt",
+      "sha256": "4d9b4feec73273cb4e57adf3351db0c4156b5460b955ff05697ae0bf43c98af9",
+      "minDepth": 1,
+      "minLayers": 2,
+      "minRisk": 90,
+      "classificationContains": [
+        "크립토마이너",
+        "다운로더"
+      ],
+      "rules": [
+        "ARC",
+        "B64",
+        "DLF",
+        "DRP",
+        "ENC",
+        "EPB",
+        "GPU",
+        "HID",
+        "IWR",
+        "MAS",
+        "MIN",
+        "REG",
+        "RUN",
+        "WEB",
+        "WRT",
+        "WSH"
+      ],
+      "iocs": [
+        "https://github.com/digitalforensiker/myreadme/raw/refs/heads/main/readme.zip",
+        "prl.kryptex.network",
+        "github.com",
+        "stratum+ssl://prl.kryptex.network:8048",
+        "prl1paljcc9y74wec30weuvwdm29k9z049zvhxxd3fgzgpp46aw9sypfql2fyju",
+        "HKCU:\\Software\\Microsoft\\Windows\\CurrentVersion\\Run"
+      ],
+      "forbiddenIocs": [
+        "sh.run",
+        "readme.md"
+      ],
+      "layerContains": [
+        "SystemSettingsBroker.exe"
+      ],
+      "maxEngineGaps": 0,
+      "note": null
+    },
+    {
+      "name": "sample03 — 3단계 드로퍼 (바이트 시프트, switch 상태 머신)",
+      "file": "../../sample/powershell03.txt",
+      "sha256": "7c7fd19b1e28b740134b52048d14df1d5756d28fbbdb8e8c960fb193b5c2057b",
+      "minDepth": 3,
+      "minLayers": 6,
+      "minRisk": 90,
+      "classificationContains": [
+        "파일리스",
+        "다운로더"
+      ],
+      "rules": [
+        "B64",
+        "CLR",
+        "CPS",
+        "DLS",
+        "DRP",
+        "DYN",
+        "EPB",
+        "FBK",
+        "HID",
+        "IEX",
+        "NET",
+        "PRV",
+        "REF",
+        "SBC",
+        "SBL",
+        "VMD",
+        "WCL",
+        "WRT",
+        "XOR"
+      ],
+      "iocs": [
+        "https://03teste.com/Margarina/By.txt",
+        "https://04teste.im/CocaCola/T03.txt",
+        "https://04teste.im/CocaColaPeNo",
+        "https://viveturetiro.mx/c.txt",
+        "03teste.com",
+        "04teste.im",
+        "viveturetiro.mx",
+        "HKEY_LOCAL_MACHINE\\Software\\Policies\\Microsoft\\Windows\\PowerShell\\ScriptBlockLogging"
+      ],
+      "forbiddenIocs": [
+        "C:\\Users\\Pub",
+        "any.run"
+      ],
+      "layerContains": [
+        "GroupPolicySettings",
+        "qdgsy_01.ps1"
+      ],
+      "maxEngineGaps": 0,
+      "note": "Base64+역순으로 숨긴 viveturetiro.mx 복원 확인"
+    },
+    {
+      "name": "sample04 — 환경 변수 분할 파일리스 로더",
+      "file": "../../sample/powershell04.txt",
+      "sha256": "ce1ec46166a9f4dea9734e3e5c6e03b27301c088ebb93b9b6a2d498ed6f8fa10",
+      "minDepth": 1,
+      "minLayers": 2,
+      "minRisk": 40,
+      "classificationContains": [
+        "파일리스"
+      ],
+      "rules": [
+        "ENV",
+        "REF"
+      ],
+      "iocs": [],
+      "forbiddenIocs": [],
+      "layerContains": [
+        "Assembly]::Load"
+      ],
+      "maxEngineGaps": 0,
+      "note": "2026-10-10 Windows Defender 가 원본을 격리함 — 파일이 없으면 SKIP"
+    },
+    {
+      "name": "sample05 — .js 드로퍼 (-eC, 스마트 따옴표)",
+      "file": "../../sample/powershell05.txt",
+      "sha256": "d1843c1523dbaf70467ae45e036089e5d30a45b10d0ce4b876b2cd424ca1fda2",
+      "minDepth": 1,
+      "minLayers": 2,
+      "minRisk": 65,
+      "classificationContains": [
+        "다운로더"
+      ],
+      "rules": [
+        "DLF",
+        "DRP",
+        "ENC",
+        "EPB",
+        "EXF",
+        "HID",
+        "IWR"
+      ],
+      "iocs": [
+        "http://185.29.9.35/55/bestchoiceformebetter.js?Image_039440.jpg",
+        "185.29.9.35"
+      ],
+      "forbiddenIocs": [
+        "http://185.29.9.35/55/bestchoiceformebetter.js?Image_039440.jpg”"
+      ],
+      "layerContains": [
+        "bestchoiceformebetter.js"
+      ],
+      "maxEngineGaps": 0,
+      "note": null
+    },
+    {
+      "name": "합성 — t1_deflate",
+      "file": "synthetic/t1_deflate.ps1",
+      "sha256": "36ccf2f935f4e918cb48f363e66d2710b0561fdbb2b3b112319da07e8ae27947",
+      "minDepth": 1,
+      "minLayers": 2,
+      "minRisk": 43,
+      "classificationContains": [
+        "다운로더"
+      ],
+      "rules": [
+        "B64",
+        "CMP",
+        "DLS",
+        "IEX",
+        "WCL"
+      ],
+      "iocs": [
+        "http://evil-test.example.xyz/p.ps1",
+        "evil-test.example.xyz"
+      ],
+      "forbiddenIocs": [],
+      "layerContains": [
+        "stage-final"
+      ],
+      "maxEngineGaps": 0,
+      "note": null
+    },
+    {
+      "name": "합성 — t2_reverse",
+      "file": "synthetic/t2_reverse.ps1",
+      "sha256": "a227abda3f6710da272c65770c7c450ce55b57de71f41fdb45583e6876486dc9",
+      "minDepth": 1,
+      "minLayers": 2,
+      "minRisk": 31,
+      "classificationContains": [
+        "다운로더"
+      ],
+      "rules": [
+        "DLS",
+        "IEX",
+        "WCL"
+      ],
+      "iocs": [
+        "http://evil-test.example.xyz/p.ps1",
+        "evil-test.example.xyz"
+      ],
+      "forbiddenIocs": [],
+      "layerContains": [
+        "stage-final"
+      ],
+      "maxEngineGaps": 0,
+      "note": null
+    },
+    {
+      "name": "합성 — t3_format",
+      "file": "synthetic/t3_format.ps1",
+      "sha256": "25470681aeb133ef703125d6a503a872639ba2406a772181a250fcab39043c12",
+      "minDepth": 1,
+      "minLayers": 2,
+      "minRisk": 31,
+      "classificationContains": [
+        "다운로더"
+      ],
+      "rules": [
+        "DLS",
+        "IEX",
+        "WCL"
+      ],
+      "iocs": [
+        "http://evil-test.example.xyz/p.ps1",
+        "evil-test.example.xyz"
+      ],
+      "forbiddenIocs": [],
+      "layerContains": [
+        "stage-final"
+      ],
+      "maxEngineGaps": 0,
+      "note": null
+    },
+    {
+      "name": "합성 — t4_charcodes",
+      "file": "synthetic/t4_charcodes.ps1",
+      "sha256": "eefbddefd3c947f96bd128ddafe0e5c71c1ef4b4aa561ca205fc20acc9fb8bfb",
+      "minDepth": 1,
+      "minLayers": 2,
+      "minRisk": 31,
+      "classificationContains": [
+        "다운로더"
+      ],
+      "rules": [
+        "DLS",
+        "IEX",
+        "WCL"
+      ],
+      "iocs": [
+        "http://evil-test.example.xyz/p.ps1",
+        "evil-test.example.xyz"
+      ],
+      "forbiddenIocs": [],
+      "layerContains": [
+        "stage-final"
+      ],
+      "maxEngineGaps": 0,
+      "note": null
+    },
+    {
+      "name": "합성 — t5_xor",
+      "file": "synthetic/t5_xor.ps1",
+      "sha256": "803505f8a0306e9a4f422b4bef516244c60436d173200ca5b5245cb94fe287f9",
+      "minDepth": 1,
+      "minLayers": 2,
+      "minRisk": 57,
+      "classificationContains": [
+        "다운로더"
+      ],
+      "rules": [
+        "B64",
+        "DLS",
+        "IEX",
+        "SBC",
+        "WCL",
+        "XOR"
+      ],
+      "iocs": [
+        "http://evil-test.example.xyz/p.ps1",
+        "evil-test.example.xyz"
+      ],
+      "forbiddenIocs": [],
+      "layerContains": [
+        "stage-final"
+      ],
+      "maxEngineGaps": 0,
+      "note": null
+    },
+    {
+      "name": "합성 — t6_cmd",
+      "file": "synthetic/t6_cmd.bat",
+      "sha256": "507b0f8f020198cb70d94c616bae5085163097c525fd26e1caf6746f4135f11c",
+      "minDepth": 1,
+      "minLayers": 2,
+      "minRisk": 45,
+      "classificationContains": [
+        "다운로더"
+      ],
+      "rules": [
+        "DLS",
+        "ENC",
+        "HID",
+        "IEX",
+        "WCL"
+      ],
+      "iocs": [
+        "http://evil-test.example.xyz/p.ps1",
+        "evil-test.example.xyz"
+      ],
+      "forbiddenIocs": [],
+      "layerContains": [
+        "stage-final"
+      ],
+      "maxEngineGaps": 0,
+      "note": null
+    },
+    {
+      "name": "합성 — t7_tick",
+      "file": "synthetic/t7_tick.ps1",
+      "sha256": "c899b5c7f2aa3018419e091f6b0465cc2c83ace0c76a6c983e7912e1f6d3b3fe",
+      "minDepth": 0,
+      "minLayers": 1,
+      "minRisk": 0,
+      "classificationContains": [
+        "의심"
+      ],
+      "rules": [
+        "DRP"
+      ],
+      "iocs": [
+        "http://badl.example.top/a.exe",
+        "badl.example.top"
+      ],
+      "forbiddenIocs": [],
+      "layerContains": [
+        "badl.example.top"
+      ],
+      "maxEngineGaps": 0,
+      "note": null
+    },
+    {
+      "name": "합성 — t8_securestring",
+      "file": "synthetic/t8_securestring.ps1",
+      "sha256": "3c1018971109a00188b7f575c9489dbc29c4c46db98d41cc602bf9b2b474dee7",
+      "minDepth": 1,
+      "minLayers": 2,
+      "minRisk": 25,
+      "classificationContains": [
+        "다운로더"
+      ],
+      "rules": [
+        "IEX",
+        "IWR"
+      ],
+      "iocs": [
+        "https://secure-test.example.top/x.ps1",
+        "secure-test.example.top"
+      ],
+      "forbiddenIocs": [],
+      "layerContains": [
+        "secure-stage"
+      ],
+      "maxEngineGaps": 0,
+      "note": null
+    }
+  ]
+}

@@ -1,0 +1,810 @@
+<Window x:Class="PsDeobfuscator.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:ae="http://icsharpcode.net/sharpdevelop/avalonedit"
+        xmlns:core="clr-namespace:PsDeobfuscator.Core"
+        xmlns:local="clr-namespace:PsDeobfuscator"
+        Title="PS Deobfuscator — PowerShell 난독화 해제 · 위협 분석"
+        Width="1540" Height="940" MinWidth="1120" MinHeight="680"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgBrush}" Foreground="{StaticResource TextBrush}"
+        FontFamily="{StaticResource UiFont}" FontSize="13"
+        WindowStyle="None" ResizeMode="CanResize"
+        AllowDrop="True" Drop="OnDrop" DragEnter="OnDragEnter" DragOver="OnDragOver" DragLeave="OnDragLeave"
+        StateChanged="OnStateChanged" PreviewKeyDown="OnPreviewKeyDown"
+        TextOptions.TextFormattingMode="Display" UseLayoutRounding="True"
+        Icon="pack://application:,,,/Resources/app.ico">
+
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="56" ResizeBorderThickness="6" CornerRadius="0" GlassFrameThickness="0" UseAeroCaptionButtons="False"/>
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <!-- 레이어 트리 항목 -->
+        <HierarchicalDataTemplate DataType="{x:Type core:Layer}" ItemsSource="{Binding Children}">
+            <Grid Margin="0,0,4,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Border Background="{StaticResource AccentGradient}" CornerRadius="6" Width="28" Height="22" VerticalAlignment="Top" Margin="0,1,8,0">
+                    <TextBlock Text="{Binding Depth, StringFormat=L{0}}" Foreground="White" FontWeight="Bold" FontSize="11"
+                               HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                </Border>
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="{Binding Title}" FontWeight="SemiBold" FontSize="12.5" TextTrimming="CharacterEllipsis"/>
+                    <TextBlock Text="{Binding Method}" Foreground="{StaticResource MutedBrush}" FontSize="11" TextTrimming="CharacterEllipsis" ToolTip="{Binding Method}"/>
+                    <TextBlock Text="{Binding SizeText}" Foreground="#5D6488" FontSize="10.5"/>
+                </StackPanel>
+            </Grid>
+        </HierarchicalDataTemplate>
+
+        <Storyboard x:Key="SpinStoryboard" RepeatBehavior="Forever">
+            <DoubleAnimation Storyboard.TargetName="SpinRotate" Storyboard.TargetProperty="Angle" From="0" To="360" Duration="0:0:0.9"/>
+        </Storyboard>
+    </Window.Resources>
+
+    <Grid x:Name="RootGrid">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="56"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="30"/>
+        </Grid.RowDefinitions>
+
+        <!-- ================= 타이틀 바 ================= -->
+        <Border Background="{StaticResource HeaderGradient}" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+
+                <StackPanel Orientation="Horizontal" Margin="18,0,24,0" VerticalAlignment="Center">
+                    <Border Width="34" Height="34" CornerRadius="10" Background="{StaticResource AccentGradient}">
+                        <Border.Effect>
+                            <DropShadowEffect Color="#7C5CFF" BlurRadius="18" ShadowDepth="0" Opacity="0.6"/>
+                        </Border.Effect>
+                        <TextBlock Text="&gt;_" FontFamily="{StaticResource CodeFont}" FontWeight="Bold" FontSize="15" Foreground="White"
+                                   HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                    </Border>
+                    <StackPanel Margin="12,0,0,0" VerticalAlignment="Center">
+                        <TextBlock Text="PS Deobfuscator" FontSize="15.5" FontWeight="Bold"/>
+                        <TextBlock Text="PowerShell 난독화 해제 · 위협 분석" FontSize="11" Foreground="{StaticResource MutedBrush}"/>
+                    </StackPanel>
+                </StackPanel>
+
+                <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button Style="{StaticResource PrimaryButton}" Click="OnOpenClick" WindowChrome.IsHitTestVisibleInChrome="True" ToolTip="파일 열기 (Ctrl+O)">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource Icon}" Text="&#xE8E5;" Foreground="White" Margin="0,0,8,0"/>
+                            <TextBlock Text="파일 열기" Foreground="White"/>
+                        </StackPanel>
+                    </Button>
+                    <Button Style="{StaticResource BaseButton}" Margin="8,0,0,0" Click="OnPasteClick" WindowChrome.IsHitTestVisibleInChrome="True" ToolTip="클립보드의 스크립트 분석 (Ctrl+Shift+V)">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource Icon}" Text="&#xE77F;" Margin="0,0,8,0"/>
+                            <TextBlock Text="클립보드 분석"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="ReanalyzeButton" Style="{StaticResource BaseButton}" Margin="8,0,0,0" Click="OnReanalyzeClick" IsEnabled="False"
+                            WindowChrome.IsHitTestVisibleInChrome="True" ToolTip="다시 분석 (F5)">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource Icon}" Text="&#xE72C;" Margin="0,0,8,0"/>
+                            <TextBlock Text="다시 분석"/>
+                        </StackPanel>
+                    </Button>
+                    <Button x:Name="ExportButton" Style="{StaticResource BaseButton}" Margin="8,0,0,0" Click="OnExportClick" IsEnabled="False"
+                            WindowChrome.IsHitTestVisibleInChrome="True">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource Icon}" Text="&#xE896;" Margin="0,0,8,0"/>
+                            <TextBlock Text="보고서 내보내기"/>
+                            <TextBlock Style="{StaticResource Icon}" Text="&#xE70D;" FontSize="9" Margin="8,0,0,0"/>
+                        </StackPanel>
+                        <Button.ContextMenu>
+                            <ContextMenu x:Name="ExportMenu">
+                                <MenuItem Header="HTML 분석 보고서 (.html)" Click="OnExportHtml">
+                                    <MenuItem.Icon><TextBlock Style="{StaticResource Icon}" Text="&#xE8A5;"/></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="JSON 결과 (.json)" Click="OnExportJson">
+                                    <MenuItem.Icon><TextBlock Style="{StaticResource Icon}" Text="&#xE943;"/></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="IOC 목록 (.csv)" Click="OnExportCsv">
+                                    <MenuItem.Icon><TextBlock Style="{StaticResource Icon}" Text="&#xE9D2;"/></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="복호화된 최종 스크립트 (.txt)" Click="OnExportScript">
+                                    <MenuItem.Icon><TextBlock Style="{StaticResource Icon}" Text="&#xE74E;"/></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="텍스트 요약 보고서 (.txt)" Click="OnExportText">
+                                    <MenuItem.Icon><TextBlock Style="{StaticResource Icon}" Text="&#xE8C4;"/></MenuItem.Icon>
+                                </MenuItem>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                    <Button x:Name="ToolsButton" Style="{StaticResource BaseButton}" Margin="8,0,0,0" Click="OnToolsClick"
+                            WindowChrome.IsHitTestVisibleInChrome="True" ToolTip="규칙·회귀 테스트 도구">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock Style="{StaticResource Icon}" Text="&#xE90F;" Margin="0,0,8,0"/>
+                            <TextBlock Text="규칙 관리"/>
+                            <TextBlock Style="{StaticResource Icon}" Text="&#xE70D;" FontSize="9" Margin="8,0,0,0"/>
+                        </StackPanel>
+                        <Button.ContextMenu>
+                            <ContextMenu x:Name="ToolsMenu">
+                                <MenuItem Header="규칙 자체 테스트 (예시·반례·정규식 검사)" Click="OnValidateRules">
+                                    <MenuItem.Icon><TextBlock Style="{StaticResource Icon}" Text="&#xE9D5;"/></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="회귀 테스트 실행 (전체 샘플)" Click="OnRunRegression">
+                                    <MenuItem.Icon><TextBlock Style="{StaticResource Icon}" Text="&#xE768;"/></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem x:Name="AddRegressionItem" Header="현재 파일을 회귀 테스트에 추가" Click="OnAddToRegression">
+                                    <MenuItem.Icon><TextBlock Style="{StaticResource Icon}" Text="&#xE710;"/></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="규칙 다시 읽기 (rules.json 수정 반영)" Click="OnReloadRules">
+                                    <MenuItem.Icon><TextBlock Style="{StaticResource Icon}" Text="&#xE72C;"/></MenuItem.Icon>
+                                </MenuItem>
+                                <MenuItem Header="규칙 파일 위치 열기" Click="OnOpenRulesFolder">
+                                    <MenuItem.Icon><TextBlock Style="{StaticResource Icon}" Text="&#xE838;"/></MenuItem.Icon>
+                                </MenuItem>
+                            </ContextMenu>
+                        </Button.ContextMenu>
+                    </Button>
+                </StackPanel>
+
+                <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Top">
+                    <Button Style="{StaticResource ChromeButton}" Content="&#xE921;" Click="OnMinimize" WindowChrome.IsHitTestVisibleInChrome="True"/>
+                    <Button x:Name="MaxButton" Style="{StaticResource ChromeButton}" Content="&#xE922;" Click="OnMaximize" WindowChrome.IsHitTestVisibleInChrome="True"/>
+                    <Button Style="{StaticResource CloseButton}" Content="&#xE8BB;" Click="OnClose" WindowChrome.IsHitTestVisibleInChrome="True"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- ================= 본문 ================= -->
+        <Grid Grid.Row="1" Margin="14,14,14,8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="290" MinWidth="230"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="*" MinWidth="380"/>
+                <ColumnDefinition Width="10"/>
+                <ColumnDefinition Width="450" MinWidth="320"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- ───── 왼쪽 패널 ───── -->
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                <StackPanel>
+                    <!-- 드롭 존 -->
+                    <Grid x:Name="DropZone" Height="118" Margin="0,0,0,12" Cursor="Hand" MouseLeftButtonUp="OnDropZoneClick" Background="Transparent">
+                        <Rectangle x:Name="DropRect" RadiusX="12" RadiusY="12" Stroke="#3A4275" StrokeThickness="1.5" StrokeDashArray="5 4" Fill="#10142A"/>
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <Border Width="40" Height="40" CornerRadius="20" Background="#1E2450" HorizontalAlignment="Center">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE898;" FontSize="18" Foreground="{StaticResource Accent2Brush}" HorizontalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="파일을 끌어다 놓거나 클릭" FontWeight="SemiBold" Margin="0,8,0,0" HorizontalAlignment="Center"/>
+                            <TextBlock Text=".ps1 · .txt · .bat · .log 등 텍스트 파일" Foreground="{StaticResource MutedBrush}" FontSize="11" HorizontalAlignment="Center"/>
+                        </StackPanel>
+                    </Grid>
+
+                    <!-- 위험도 -->
+                    <Border Style="{StaticResource Card}">
+                        <StackPanel>
+                            <TextBlock Text="위험도 평가" Style="{StaticResource CardTitle}"/>
+                            <Grid Width="150" Height="150" HorizontalAlignment="Center">
+                                <Ellipse Stroke="#202647" StrokeThickness="12"/>
+                                <Ellipse x:Name="GaugeArc" StrokeThickness="12" StrokeDashCap="Round" StrokeDashArray="0 1000" RenderTransformOrigin="0.5,0.5">
+                                    <Ellipse.Stroke>
+                                        <LinearGradientBrush x:Name="GaugeBrush" StartPoint="0,0" EndPoint="1,1">
+                                            <GradientStop x:Name="GaugeStop1" Color="#2EC4B6" Offset="0"/>
+                                            <GradientStop x:Name="GaugeStop2" Color="#00D4FF" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Ellipse.Stroke>
+                                    <Ellipse.RenderTransform>
+                                        <RotateTransform Angle="-90"/>
+                                    </Ellipse.RenderTransform>
+                                </Ellipse>
+                                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                                    <TextBlock x:Name="ScoreText" Text="—" FontSize="40" FontWeight="Bold" HorizontalAlignment="Center"/>
+                                    <TextBlock x:Name="LevelText" Text="분석 대기" FontSize="12" Foreground="{StaticResource MutedBrush}" HorizontalAlignment="Center"/>
+                                </StackPanel>
+                            </Grid>
+                            <Border x:Name="ClassChip" Background="#1E2450" CornerRadius="8" Padding="10,7" Margin="0,14,0,0" Visibility="Collapsed">
+                                <StackPanel>
+                                    <TextBlock Text="판단 유형" FontSize="10.5" Foreground="{StaticResource MutedBrush}"/>
+                                    <TextBlock x:Name="ClassText" FontWeight="SemiBold" TextWrapping="Wrap" Margin="0,2,0,0"/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 파일 정보 -->
+                    <Border x:Name="FileCard" Style="{StaticResource Card}" Visibility="Collapsed">
+                        <StackPanel>
+                            <TextBlock Text="파일 정보" Style="{StaticResource CardTitle}"/>
+                            <TextBlock x:Name="FileNameText" FontWeight="SemiBold" TextTrimming="CharacterEllipsis"/>
+                            <TextBlock x:Name="FileSizeText" Foreground="{StaticResource MutedBrush}" FontSize="11.5" Margin="0,2,0,10"/>
+                            <Grid Margin="0,0,0,8">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="Auto"/>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="Auto"/>
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Text="엔트로피" Foreground="{StaticResource MutedBrush}" FontSize="11.5" Width="56"/>
+                                <Border Grid.Column="1" Height="6" CornerRadius="3" Background="#232948" VerticalAlignment="Center" Margin="0,0,8,0">
+                                    <Border x:Name="EntropyBar" HorizontalAlignment="Left" CornerRadius="3" Background="{StaticResource AccentGradient}" Width="0"/>
+                                </Border>
+                                <TextBlock x:Name="EntropyText" Grid.Column="2" FontSize="11.5" FontFamily="{StaticResource CodeFont}"/>
+                            </Grid>
+                            <TextBlock Text="SHA256" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                            <TextBlock x:Name="ShaText" FontFamily="{StaticResource CodeFont}" FontSize="10.5" TextWrapping="Wrap" Margin="0,2,0,6"/>
+                            <TextBlock Text="MD5" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                            <TextBlock x:Name="Md5Text" FontFamily="{StaticResource CodeFont}" FontSize="10.5" TextWrapping="Wrap" Margin="0,2,0,10"/>
+                            <UniformGrid Columns="2">
+                                <Button Style="{StaticResource BaseButton}" Margin="0,0,4,0" Click="OnCopyHashClick" Padding="6,6">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE8C8;" FontSize="12" Margin="0,0,6,0"/>
+                                        <TextBlock Text="해시 복사" FontSize="12"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource BaseButton}" Margin="4,0,0,0" Click="OnVirusTotalHashClick" Padding="6,6" ToolTip="브라우저에서 VirusTotal 해시 검색 (해시만 전송)">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE774;" FontSize="12" Margin="0,0,6,0"/>
+                                        <TextBlock Text="VirusTotal" FontSize="12"/>
+                                    </StackPanel>
+                                </Button>
+                            </UniformGrid>
+                        </StackPanel>
+                    </Border>
+
+                    <!-- 레이어 -->
+                    <Border x:Name="LayerCard" Style="{StaticResource Card}" Visibility="Collapsed">
+                        <StackPanel>
+                            <Grid>
+                                <TextBlock Text="난독화 레이어" Style="{StaticResource CardTitle}"/>
+                                <TextBlock x:Name="LayerCountText" HorizontalAlignment="Right" Foreground="{StaticResource Accent2Brush}" FontSize="11.5" FontWeight="SemiBold"/>
+                            </Grid>
+                            <TreeView x:Name="LayerTree" Background="Transparent" BorderThickness="0" SelectedItemChanged="OnLayerSelected"
+                                      ScrollViewer.HorizontalScrollBarVisibility="Disabled"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+
+            <GridSplitter Grid.Column="1" Width="10" HorizontalAlignment="Stretch" ResizeBehavior="PreviousAndNext" Cursor="SizeWE"/>
+
+            <!-- ───── 가운데: 코드 뷰 ───── -->
+            <Border Grid.Column="2" Style="{StaticResource Card}" Padding="0" Margin="0">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+
+                    <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="16,10">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <StackPanel VerticalAlignment="Center">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE943;" Foreground="{StaticResource Accent2Brush}" Margin="0,0,8,0"/>
+                                    <TextBlock x:Name="LayerTitleText" Text="복호화 결과" FontWeight="SemiBold" FontSize="14"/>
+                                </StackPanel>
+                                <TextBlock x:Name="LayerMethodText" Foreground="{StaticResource MutedBrush}" FontSize="11.5" Margin="22,2,0,0" TextTrimming="CharacterEllipsis"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Border Background="#0F1328" CornerRadius="8" Padding="3" Margin="0,0,8,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <RadioButton x:Name="ViewClean" Style="{StaticResource SegmentRadio}" Content="정리본" IsChecked="True" Checked="OnViewModeChanged" ToolTip="상수 접기·이름 정규화·들여쓰기를 적용한 보기"/>
+                                        <RadioButton x:Name="ViewRaw" Style="{StaticResource SegmentRadio}" Content="원시 디코딩" Checked="OnViewModeChanged" ToolTip="디코딩 직후의 원래 형태"/>
+                                    </StackPanel>
+                                </Border>
+                                <ToggleButton x:Name="WrapToggle" Style="{StaticResource PillToggle}" Margin="0,0,6,0" Checked="OnWrapChanged" Unchecked="OnWrapChanged" ToolTip="자동 줄바꿈">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE751;" FontSize="12"/>
+                                </ToggleButton>
+                                <Button Style="{StaticResource BaseButton}" Padding="9,6" Margin="0,0,6,0" Click="OnFindClick" ToolTip="찾기 (Ctrl+F)">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE721;" FontSize="12"/>
+                                </Button>
+                                <Button Style="{StaticResource BaseButton}" Padding="9,6" Margin="0,0,6,0" Click="OnCopyCodeClick" ToolTip="전체 복사">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE8C8;" FontSize="12"/>
+                                </Button>
+                                <Button x:Name="SaveLayerButton" Style="{StaticResource BaseButton}" Padding="9,6" Click="OnSaveLayerClick" ToolTip="이 레이어를 파일로 저장">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE74E;" FontSize="12"/>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+
+                    <ae:TextEditor x:Name="Editor" Grid.Row="1" IsReadOnly="True" ShowLineNumbers="True"
+                                   Background="{StaticResource CodeBgBrush}" Foreground="#D6DAF0" LineNumbersForeground="#454C7A"
+                                   FontFamily="{StaticResource CodeFont}" FontSize="13" Padding="10,8"
+                                   HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto"/>
+
+                    <!-- 시작 화면 -->
+                    <Grid x:Name="WelcomePanel" Grid.Row="0" Grid.RowSpan="2" Background="{StaticResource CardBrush}">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" MaxWidth="620" Margin="24">
+                            <Border Width="72" Height="72" CornerRadius="20" Background="{StaticResource AccentGradient}" HorizontalAlignment="Center">
+                                <Border.Effect>
+                                    <DropShadowEffect Color="#7C5CFF" BlurRadius="40" ShadowDepth="0" Opacity="0.55"/>
+                                </Border.Effect>
+                                <TextBlock Text="&gt;_" FontFamily="{StaticResource CodeFont}" FontWeight="Bold" FontSize="30" Foreground="White"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <TextBlock Text="PowerShell 난독화 분석기" FontSize="26" FontWeight="Bold" HorizontalAlignment="Center" Margin="0,22,0,6"/>
+                            <TextBlock Text="악성 PowerShell 스크립트를 실행하지 않고 안전하게 해독합니다.&#x0a;다단계 레이어를 자동으로 벗기고, 도메인·명령어·행위를 한국어로 설명해 드립니다."
+                                       Foreground="{StaticResource MutedBrush}" TextAlignment="Center" TextWrapping="Wrap" LineHeight="21"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,22,0,26">
+                                <Button Style="{StaticResource PrimaryButton}" Click="OnOpenClick" Padding="18,10">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE8E5;" Foreground="White" Margin="0,0,8,0"/>
+                                        <TextBlock Text="파일 열기" Foreground="White"/>
+                                    </StackPanel>
+                                </Button>
+                                <Button Style="{StaticResource BaseButton}" Click="OnSampleFolderClick" Padding="18,10" Margin="10,0,0,0">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE838;" Margin="0,0,8,0"/>
+                                        <TextBlock Text="샘플 폴더에서 열기"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                            <UniformGrid Columns="3">
+                                <Border Style="{StaticResource Card}" Background="#121730" Margin="0,0,6,0">
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE72E;" FontSize="20" Foreground="{StaticResource Accent2Brush}"/>
+                                        <TextBlock Text="안전한 정적 해독" FontWeight="SemiBold" Margin="0,8,0,4"/>
+                                        <TextBlock Text="PowerShell 파서 + 자체 샌드박스 인터프리터. iex·다운로드는 실행 대신 캡처" Foreground="{StaticResource MutedBrush}" FontSize="11.5" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource Card}" Background="#121730" Margin="3,0,3,0">
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE8B7;" FontSize="20" Foreground="{StaticResource Accent2Brush}"/>
+                                        <TextBlock Text="다단계 레이어 추적" FontWeight="SemiBold" Margin="0,8,0,4"/>
+                                        <TextBlock Text="-enc, Base64, 압축, XOR, SecureString, 드롭 파일까지 트리로 표시" Foreground="{StaticResource MutedBrush}" FontSize="11.5" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource Card}" Background="#121730" Margin="6,0,0,0">
+                                    <StackPanel>
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE9D9;" FontSize="20" Foreground="{StaticResource Accent2Brush}"/>
+                                        <TextBlock Text="IOC · ATT&amp;CK 분석" FontWeight="SemiBold" Margin="0,8,0,4"/>
+                                        <TextBlock Text="도메인/URL/경로/레지스트리 추출, 행위 설명, 위험도, 보고서 내보내기" Foreground="{StaticResource MutedBrush}" FontSize="11.5" TextWrapping="Wrap"/>
+                                    </StackPanel>
+                                </Border>
+                            </UniformGrid>
+                            <TextBlock Text="단축키  Ctrl+O 열기 · Ctrl+Shift+V 클립보드 분석 · F5 다시 분석 · Ctrl+F 찾기"
+                                       Foreground="#5D6488" FontSize="11" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+            </Border>
+
+            <GridSplitter Grid.Column="3" Width="10" HorizontalAlignment="Stretch" ResizeBehavior="PreviousAndNext" Cursor="SizeWE"/>
+
+            <!-- ───── 오른쪽: 분석 탭 ───── -->
+            <TabControl x:Name="RightTabs" Grid.Column="4" Style="{StaticResource NavTabControl}">
+                <!-- 요약 -->
+                <TabItem x:Name="SummaryTab" Header="요약">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <UniformGrid Columns="4" Margin="0,0,0,12">
+                                <Border Style="{StaticResource Card}" Margin="0,0,5,0" Padding="12">
+                                    <StackPanel>
+                                        <TextBlock x:Name="StatLayers" Text="0" FontSize="22" FontWeight="Bold"/>
+                                        <TextBlock Text="레이어" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource Card}" Margin="3,0,3,0" Padding="12">
+                                    <StackPanel>
+                                        <TextBlock x:Name="StatFindings" Text="0" FontSize="22" FontWeight="Bold"/>
+                                        <TextBlock Text="의심 행위" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource Card}" Margin="3,0,3,0" Padding="12">
+                                    <StackPanel>
+                                        <TextBlock x:Name="StatIocs" Text="0" FontSize="22" FontWeight="Bold"/>
+                                        <TextBlock Text="IOC" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                                    </StackPanel>
+                                </Border>
+                                <Border Style="{StaticResource Card}" Margin="5,0,0,0" Padding="12">
+                                    <StackPanel>
+                                        <TextBlock x:Name="StatTime" Text="—" FontSize="22" FontWeight="Bold"/>
+                                        <TextBlock Text="분석 시간" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                                    </StackPanel>
+                                </Border>
+                            </UniformGrid>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="분석 요약" Style="{StaticResource CardTitle}"/>
+                                    <ItemsControl x:Name="SummaryList">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Grid Margin="0,0,0,10">
+                                                    <Grid.ColumnDefinitions>
+                                                        <ColumnDefinition Width="16"/>
+                                                        <ColumnDefinition Width="*"/>
+                                                    </Grid.ColumnDefinitions>
+                                                    <Ellipse Width="7" Height="7" Fill="{StaticResource AccentGradient}" VerticalAlignment="Top" Margin="0,6,0,0"/>
+                                                    <TextBlock Grid.Column="1" Text="{Binding}" TextWrapping="Wrap" LineHeight="20"/>
+                                                </Grid>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                    <TextBlock x:Name="SummaryEmpty" Text="파일을 열면 분석 결과가 여기에 표시됩니다." Foreground="{StaticResource MutedBrush}"/>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="탐지된 난독화 기법" Style="{StaticResource CardTitle}"/>
+                                    <ItemsControl x:Name="TechList">
+                                        <ItemsControl.ItemsPanel>
+                                            <ItemsPanelTemplate><WrapPanel/></ItemsPanelTemplate>
+                                        </ItemsControl.ItemsPanel>
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate>
+                                                <Border Style="{StaticResource Chip}" Background="#241F4D">
+                                                    <TextBlock Text="{Binding}" FontSize="11.5" Foreground="#CFC6FF"/>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}" Background="#121730">
+                                <StackPanel Orientation="Horizontal">
+                                    <TextBlock Style="{StaticResource Icon}" Text="&#xE72E;" Foreground="{StaticResource SafeBrush}" Margin="0,0,10,0" VerticalAlignment="Top"/>
+                                    <TextBlock TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" FontSize="11.5" MaxWidth="360"
+                                               Text="이 프로그램은 스크립트를 실행하지 않습니다. 문자열 연산·Base64·압축 해제 같은 순수 연산만 메모리에서 수행하며, 네트워크 접속·파일 쓰기·코드 실행은 모두 가상으로 기록만 합니다."/>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- 행위 -->
+                <TabItem x:Name="FindingsTab" Header="행위">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="FindingList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type core:BehaviorFinding}">
+                                    <Border Background="{StaticResource CardBrush}" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="12" Margin="0,0,0,10">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="4"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Border CornerRadius="12,0,0,12" Background="{Binding Severity, Converter={StaticResource SevBrush}}"/>
+                                            <StackPanel Grid.Column="1" Margin="14,12,14,12">
+                                                <Grid>
+                                                    <StackPanel Orientation="Horizontal">
+                                                        <Border CornerRadius="5" Padding="7,2" Background="{Binding Severity, Converter={StaticResource SevBrush}}">
+                                                            <TextBlock Text="{Binding SeverityText}" Foreground="#111" FontWeight="Bold" FontSize="11"/>
+                                                        </Border>
+                                                        <TextBlock Text="{Binding Category}" Foreground="{StaticResource MutedBrush}" FontSize="11.5" Margin="8,0,0,0" VerticalAlignment="Center"/>
+                                                    </StackPanel>
+                                                    <Button HorizontalAlignment="Right" Style="{StaticResource GhostButton}" Padding="6,2" Tag="{Binding MitreUrl}" Click="OnOpenUrlTag"
+                                                            ToolTip="{Binding MitreName}" Visibility="{Binding Mitre, Converter={x:Static local:NonEmptyToVis.Instance}}">
+                                                        <TextBlock Text="{Binding Mitre}" Foreground="{StaticResource Accent2Brush}" FontFamily="{StaticResource CodeFont}" FontSize="11.5"/>
+                                                    </Button>
+                                                </Grid>
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13.5" Margin="0,8,0,4" TextWrapping="Wrap"/>
+                                                <TextBlock Text="{Binding Description}" Foreground="#B4B9D6" FontSize="12" TextWrapping="Wrap" LineHeight="19"/>
+                                                <Border Background="{StaticResource CodeBgBrush}" CornerRadius="8" Padding="10,8" Margin="0,10,0,0" Cursor="Hand"
+                                                        Tag="{Binding}" MouseLeftButtonUp="OnEvidenceClick" ToolTip="클릭하면 해당 레이어의 코드 위치로 이동">
+                                                    <Grid>
+                                                        <Grid.ColumnDefinitions>
+                                                            <ColumnDefinition Width="Auto"/>
+                                                            <ColumnDefinition Width="*"/>
+                                                        </Grid.ColumnDefinitions>
+                                                        <Border Background="#232948" CornerRadius="4" Padding="5,1" VerticalAlignment="Top" Margin="0,0,8,0">
+                                                            <TextBlock Text="{Binding LayerDepth, StringFormat=L{0}}" FontSize="10.5" Foreground="{StaticResource Accent2Brush}"/>
+                                                        </Border>
+                                                        <TextBlock Grid.Column="1" Text="{Binding Evidence}" FontFamily="{StaticResource CodeFont}" FontSize="11.5"
+                                                                   Foreground="#E5C07B" TextWrapping="Wrap"/>
+                                                    </Grid>
+                                                </Border>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- IOC -->
+                <TabItem x:Name="IocTab" Header="IOC">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <TextBox x:Name="IocFilter" Style="{StaticResource SearchBox}" Tag="IOC 검색 (유형·값)" TextChanged="OnIocFilterChanged"/>
+                            <StackPanel Grid.Column="1" Orientation="Horizontal" Margin="8,0,0,0">
+                                <ToggleButton x:Name="HideBenignToggle" Style="{StaticResource PillToggle}" Content="정상 숨김" IsChecked="True" Checked="OnIocFilterChanged" Unchecked="OnIocFilterChanged" Margin="0,0,6,0"/>
+                                <Button Style="{StaticResource BaseButton}" Padding="9,6" Click="OnCopyAllIocClick" ToolTip="전체 IOC 를 디팽(무력화) 형태로 복사">
+                                    <StackPanel Orientation="Horizontal">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE8C8;" FontSize="12" Margin="0,0,6,0"/>
+                                        <TextBlock Text="전체 복사" FontSize="12"/>
+                                    </StackPanel>
+                                </Button>
+                            </StackPanel>
+                        </Grid>
+                        <ListBox x:Name="IocList" Grid.Row="1" Style="{StaticResource PlainListBox}" ItemContainerStyle="{StaticResource PlainListItem}"
+                                 MouseDoubleClick="OnIocDoubleClick" VirtualizingPanel.IsVirtualizing="True">
+                            <ListBox.ContextMenu>
+                                <ContextMenu>
+                                    <MenuItem Header="값 복사" Click="OnIocCopy">
+                                        <MenuItem.Icon><TextBlock Style="{StaticResource Icon}" Text="&#xE8C8;"/></MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="디팽(무력화) 형태로 복사" Click="OnIocCopyDefanged">
+                                        <MenuItem.Icon><TextBlock Style="{StaticResource Icon}" Text="&#xE72E;"/></MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="VirusTotal 에서 조회 (브라우저)" Click="OnIocVirusTotal">
+                                        <MenuItem.Icon><TextBlock Style="{StaticResource Icon}" Text="&#xE774;"/></MenuItem.Icon>
+                                    </MenuItem>
+                                    <MenuItem Header="코드에서 위치 보기" Click="OnIocGoto">
+                                        <MenuItem.Icon><TextBlock Style="{StaticResource Icon}" Text="&#xE8A7;"/></MenuItem.Icon>
+                                    </MenuItem>
+                                </ContextMenu>
+                            </ListBox.ContextMenu>
+                            <ListBox.ItemTemplate>
+                                <DataTemplate DataType="{x:Type core:Ioc}">
+                                    <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="8,9">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="86"/>
+                                                <ColumnDefinition Width="*"/>
+                                            </Grid.ColumnDefinitions>
+                                            <Border CornerRadius="5" Padding="6,2" VerticalAlignment="Top" HorizontalAlignment="Left"
+                                                    Background="{Binding Type, Converter={StaticResource IocBrush}, ConverterParameter=bg}">
+                                                <TextBlock Text="{Binding Type}" FontSize="11" FontWeight="SemiBold" Foreground="{Binding Type, Converter={StaticResource IocBrush}}"/>
+                                            </Border>
+                                            <StackPanel Grid.Column="1">
+                                                <TextBlock Text="{Binding Value}" FontFamily="{StaticResource CodeFont}" FontSize="12" TextWrapping="Wrap"/>
+                                                <StackPanel Orientation="Horizontal" Margin="0,3,0,0">
+                                                    <TextBlock Text="{Binding LayerDepth, StringFormat=L{0}}" Foreground="{StaticResource Accent2Brush}" FontSize="10.5" Margin="0,0,8,0"/>
+                                                    <TextBlock Text="{Binding Note}" Foreground="{StaticResource MutedBrush}" FontSize="10.5"/>
+                                                </StackPanel>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+                    </Grid>
+                </TabItem>
+
+                <!-- 명령어 -->
+                <TabItem x:Name="CommandsTab" Header="명령어">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="CommandList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type core:CommandExplanation}">
+                                    <Border Style="{StaticResource Card}" Padding="14,12" Margin="0,0,0,8">
+                                        <StackPanel>
+                                            <Grid>
+                                                <StackPanel Orientation="Horizontal">
+                                                    <TextBlock Text="{Binding Name}" FontFamily="{StaticResource CodeFont}" FontWeight="Bold" FontSize="12.5" Foreground="#82AAFF" VerticalAlignment="Center"/>
+                                                    <Border CornerRadius="5" Padding="6,1" Margin="8,0,0,0" Background="#4A1D2A"
+                                                            Visibility="{Binding Suspicious, Converter={StaticResource BoolVis}}">
+                                                        <TextBlock Text="주의" FontSize="10.5" Foreground="#FF9FB2" FontWeight="SemiBold"/>
+                                                    </Border>
+                                                </StackPanel>
+                                                <TextBlock HorizontalAlignment="Right" Foreground="{StaticResource MutedBrush}" FontSize="11" VerticalAlignment="Center">
+                                                    <Run Text="{Binding Kind, Mode=OneWay}"/><Run Text="  ·  "/><Run Text="{Binding Count, Mode=OneWay, StringFormat=×{0}}"/>
+                                                </TextBlock>
+                                            </Grid>
+                                            <TextBlock Text="{Binding Description}" TextWrapping="Wrap" Foreground="#B4B9D6" FontSize="12" Margin="0,6,0,0" LineHeight="19"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- ATT&CK -->
+                <TabItem x:Name="MitreTab" Header="ATT&amp;CK">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <ItemsControl x:Name="MitreList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type core:MitreItem}">
+                                    <Border Style="{StaticResource Card}" Padding="14,11" Margin="0,0,0,8">
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="*"/>
+                                                <ColumnDefinition Width="Auto"/>
+                                            </Grid.ColumnDefinitions>
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Tactic}" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" Margin="0,2,0,0"/>
+                                            </StackPanel>
+                                            <Button Grid.Column="1" Style="{StaticResource BaseButton}" Padding="8,4" Tag="{Binding Url}" Click="OnOpenUrlTag" VerticalAlignment="Center" ToolTip="MITRE ATT&amp;CK 페이지 열기">
+                                                <TextBlock Text="{Binding Id}" FontFamily="{StaticResource CodeFont}" Foreground="{StaticResource Accent2Brush}" FontSize="12"/>
+                                            </Button>
+                                        </Grid>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </TabItem>
+
+                <!-- 진단 -->
+                <TabItem x:Name="DiagTab" Header="진단">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto">
+                        <StackPanel>
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="해독 상태" Style="{StaticResource CardTitle}"/>
+                                    <StackPanel x:Name="DiagOkPanel" Orientation="Horizontal" Visibility="Collapsed">
+                                        <TextBlock Style="{StaticResource Icon}" Text="&#xE73E;" Foreground="{StaticResource SafeBrush}" Margin="0,0,8,0"/>
+                                        <TextBlock Text="모든 레이어가 끝까지 해독되었습니다." Foreground="{StaticResource SafeBrush}"/>
+                                    </StackPanel>
+                                    <ItemsControl x:Name="WarningList">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type core:DecodeWarning}">
+                                                <Border Background="#121730" CornerRadius="8" Padding="10,9" Margin="0,0,0,8">
+                                                    <StackPanel>
+                                                        <StackPanel Orientation="Horizontal">
+                                                            <Border CornerRadius="5" Padding="7,2" Background="{Binding Suspicious, Converter={StaticResource DiagBrush}, ConverterParameter=bg}">
+                                                                <TextBlock Text="{Binding LevelText}" FontSize="11" FontWeight="SemiBold" Foreground="{Binding Suspicious, Converter={StaticResource DiagBrush}}"/>
+                                                            </Border>
+                                                            <TextBlock Foreground="{StaticResource MutedBrush}" FontSize="11.5" Margin="8,0,0,0" VerticalAlignment="Center">
+                                                                <Run Text="{Binding LayerDepth, Mode=OneWay, StringFormat=L{0}}"/><Run Text=" · "/><Run Text="{Binding LayerTitle, Mode=OneWay}"/>
+                                                            </TextBlock>
+                                                        </StackPanel>
+                                                        <TextBlock Text="{Binding Reason}" TextWrapping="Wrap" FontSize="12" Foreground="#C8CCE6" Margin="0,6,0,0" LineHeight="19"/>
+                                                        <Border Background="{StaticResource CodeBgBrush}" CornerRadius="6" Padding="8,6" Margin="0,8,0,0" Cursor="Hand"
+                                                                Tag="{Binding}" MouseLeftButtonUp="OnWarningClick" ToolTip="클릭하면 코드 위치로 이동"
+                                                                Visibility="{Binding Evidence, Converter={x:Static local:NonEmptyToVis.Instance}}">
+                                                            <TextBlock Text="{Binding Evidence}" FontFamily="{StaticResource CodeFont}" FontSize="11" Foreground="#E5C07B" TextWrapping="Wrap"/>
+                                                        </Border>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <Grid>
+                                        <TextBlock Text="엔진 미지원 항목" Style="{StaticResource CardTitle}"/>
+                                        <ToggleButton x:Name="ShowAllGapsToggle" Style="{StaticResource PillToggle}" HorizontalAlignment="Right" VerticalAlignment="Top"
+                                                      Content="환경 의존 포함" Checked="OnGapFilterChanged" Unchecked="OnGapFilterChanged" Padding="8,3" FontSize="11"/>
+                                    </Grid>
+                                    <TextBlock TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" FontSize="11.5" Margin="0,0,0,10" LineHeight="18"
+                                               Text="'엔진 확장 필요'가 다음 개선 대상입니다. 환경 의존(네트워크·시스템 조회·외부 파일)은 정적 분석에서 의도적으로 실행하지 않는 항목입니다."/>
+                                    <TextBlock x:Name="GapEmptyText" Text="엔진이 처리하지 못한 항목이 없습니다." Foreground="{StaticResource SafeBrush}" Visibility="Collapsed" TextWrapping="Wrap"/>
+                                    <ItemsControl x:Name="GapList">
+                                        <ItemsControl.ItemTemplate>
+                                            <DataTemplate DataType="{x:Type core:EngineGap}">
+                                                <Border BorderBrush="{StaticResource LineBrush}" BorderThickness="0,0,0,1" Padding="0,8">
+                                                    <StackPanel>
+                                                        <Grid>
+                                                            <Grid.ColumnDefinitions>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                                <ColumnDefinition Width="*"/>
+                                                                <ColumnDefinition Width="Auto"/>
+                                                            </Grid.ColumnDefinitions>
+                                                            <Border CornerRadius="5" Padding="6,2" VerticalAlignment="Top" Background="{Binding Kind, Converter={StaticResource DiagBrush}, ConverterParameter=bg}">
+                                                                <TextBlock Text="{Binding KindText}" FontSize="10.5" FontWeight="SemiBold" Foreground="{Binding Kind, Converter={StaticResource DiagBrush}}"/>
+                                                            </Border>
+                                                            <TextBlock Grid.Column="1" Text="{Binding Detail}" FontFamily="{StaticResource CodeFont}" FontSize="11.5" TextWrapping="Wrap" Margin="8,1,8,0"/>
+                                                            <TextBlock Grid.Column="2" Foreground="{StaticResource MutedBrush}" FontSize="11">
+                                                                <Run Text="{Binding Count, Mode=OneWay, StringFormat=×{0}}"/><Run Text="  "/><Run Text="{Binding LayersText, Mode=OneWay}"/>
+                                                            </TextBlock>
+                                                        </Grid>
+                                                        <TextBlock Text="{Binding Example}" FontFamily="{StaticResource CodeFont}" FontSize="10.5" Foreground="#7D84AA" TextTrimming="CharacterEllipsis"
+                                                                   Margin="0,5,0,0" Cursor="Hand" Tag="{Binding}" MouseLeftButtonUp="OnGapClick" ToolTip="{Binding Example}"/>
+                                                    </StackPanel>
+                                                </Border>
+                                            </DataTemplate>
+                                        </ItemsControl.ItemTemplate>
+                                    </ItemsControl>
+                                </StackPanel>
+                            </Border>
+
+                            <Border Style="{StaticResource Card}">
+                                <StackPanel>
+                                    <TextBlock Text="규칙 · 회귀 테스트" Style="{StaticResource CardTitle}"/>
+                                    <TextBlock x:Name="RuleStatusText" TextWrapping="Wrap" FontWeight="SemiBold"/>
+                                    <TextBlock x:Name="RulePathText" TextWrapping="Wrap" FontFamily="{StaticResource CodeFont}" FontSize="10.5" Foreground="{StaticResource MutedBrush}" Margin="0,4,0,12"/>
+                                    <UniformGrid Columns="2">
+                                        <Button Style="{StaticResource BaseButton}" Margin="0,0,4,8" Click="OnValidateRules" Padding="6,7">
+                                            <TextBlock Text="규칙 자체 테스트" FontSize="12"/>
+                                        </Button>
+                                        <Button Style="{StaticResource BaseButton}" Margin="4,0,0,8" Click="OnRunRegression" Padding="6,7">
+                                            <TextBlock Text="회귀 테스트 실행" FontSize="12"/>
+                                        </Button>
+                                        <Button x:Name="AddRegressionButton" Style="{StaticResource PrimaryButton}" Margin="0,0,4,0" Click="OnAddToRegression" Padding="6,7">
+                                            <TextBlock Text="이 파일을 테스트에 추가" FontSize="12" Foreground="White"/>
+                                        </Button>
+                                        <Button Style="{StaticResource BaseButton}" Margin="4,0,0,0" Click="OnReloadRules" Padding="6,7">
+                                            <TextBlock Text="규칙 다시 읽기" FontSize="12"/>
+                                        </Button>
+                                    </UniformGrid>
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </ScrollViewer>
+                </TabItem>
+            </TabControl>
+        </Grid>
+
+        <!-- ================= 상태 표시줄 ================= -->
+        <Border Grid.Row="2" Background="#0A0D18" BorderBrush="{StaticResource LineBrush}" BorderThickness="0,1,0,0" Padding="16,0">
+            <Grid>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse x:Name="StatusDot" Width="7" Height="7" Fill="{StaticResource SafeBrush}" Margin="0,0,8,0"/>
+                    <TextBlock x:Name="StatusText" Text="준비됨" Foreground="{StaticResource MutedBrush}" FontSize="11.5"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <!-- 화면 배율: Ctrl+마우스 휠 / Ctrl + '+' '-' '0' -->
+                    <Border Background="#141933" CornerRadius="6" Margin="0,0,12,0" ToolTip="화면 배율 — Ctrl+마우스 휠, Ctrl + '+' / '-' 로 조절, Ctrl+0 으로 100%">
+                        <StackPanel Orientation="Horizontal">
+                            <Button Style="{StaticResource GhostButton}" Padding="7,1" Click="OnZoomOut">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE738;" FontSize="9"/>
+                            </Button>
+                            <Button Style="{StaticResource GhostButton}" Padding="4,1" Click="OnZoomReset" ToolTip="100% 로 되돌리기 (Ctrl+0)">
+                                <TextBlock x:Name="ZoomText" Text="100%" FontSize="11" Foreground="#AEB3D4" MinWidth="34" TextAlignment="Center"/>
+                            </Button>
+                            <Button Style="{StaticResource GhostButton}" Padding="7,1" Click="OnZoomIn">
+                                <TextBlock Style="{StaticResource Icon}" Text="&#xE710;" FontSize="9"/>
+                            </Button>
+                        </StackPanel>
+                    </Border>
+                    <Button Style="{StaticResource GhostButton}" Padding="6,2" Margin="0,0,10,0" Click="OnValidateRules" ToolTip="클릭하면 규칙 자체 테스트 결과를 봅니다">
+                        <StackPanel Orientation="Horizontal">
+                            <Ellipse x:Name="RulesDot" Width="6" Height="6" Fill="#5D6488" Margin="0,0,6,0"/>
+                            <TextBlock x:Name="RulesText" Foreground="#7D84AA" FontSize="11"/>
+                        </StackPanel>
+                    </Button>
+                    <TextBlock Style="{StaticResource Icon}" Text="&#xE72E;" FontSize="11" Foreground="{StaticResource SafeBrush}" Margin="0,0,6,0"/>
+                    <TextBlock Text="정적 분석 · 스크립트 미실행" Foreground="{StaticResource MutedBrush}" FontSize="11"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- 배율 변경 안내 (잠깐 표시 후 사라짐) -->
+        <Border x:Name="ZoomToast" Grid.RowSpan="3" HorizontalAlignment="Center" VerticalAlignment="Center" Opacity="0" IsHitTestVisible="False"
+                Background="#E61A1F3D" BorderBrush="{StaticResource LineBrush}" BorderThickness="1" CornerRadius="14" Padding="26,14">
+            <StackPanel Orientation="Horizontal">
+                <TextBlock Style="{StaticResource Icon}" Text="&#xE71E;" FontSize="22" Foreground="{StaticResource Accent2Brush}" Margin="0,0,12,0"/>
+                <TextBlock x:Name="ZoomToastText" Text="100%" FontSize="24" FontWeight="Bold"/>
+            </StackPanel>
+        </Border>
+
+        <!-- 드래그 오버레이 -->
+        <Grid x:Name="DropOverlay" Grid.RowSpan="3" Background="#D90B0E1A" Visibility="Collapsed" IsHitTestVisible="False">
+            <Rectangle Margin="24" RadiusX="20" RadiusY="20" Stroke="{StaticResource AccentGradient}" StrokeThickness="3" StrokeDashArray="6 4"/>
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <TextBlock Style="{StaticResource Icon}" Text="&#xE898;" FontSize="44" Foreground="{StaticResource Accent2Brush}" HorizontalAlignment="Center"/>
+                <TextBlock Text="놓으면 바로 분석합니다" FontSize="22" FontWeight="Bold" Margin="0,14,0,0" HorizontalAlignment="Center"/>
+            </StackPanel>
+        </Grid>
+
+        <!-- 분석 중 오버레이 -->
+        <Grid x:Name="BusyOverlay" Grid.RowSpan="3" Background="#CC0B0E1A" Visibility="Collapsed">
+            <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                <Grid Width="56" Height="56" HorizontalAlignment="Center">
+                    <Ellipse Stroke="#232948" StrokeThickness="5"/>
+                    <Ellipse StrokeThickness="5" StrokeDashArray="6 30" StrokeDashCap="Round" Stroke="{StaticResource AccentGradient}" RenderTransformOrigin="0.5,0.5">
+                        <Ellipse.RenderTransform>
+                            <RotateTransform x:Name="SpinRotate" Angle="0"/>
+                        </Ellipse.RenderTransform>
+                    </Ellipse>
+                </Grid>
+                <TextBlock x:Name="BusyText" Text="레이어를 해제하는 중…" FontSize="15" FontWeight="SemiBold" Margin="0,16,0,0" HorizontalAlignment="Center"/>
+                <TextBlock Text="스크립트는 실행되지 않습니다" Foreground="{StaticResource MutedBrush}" FontSize="11.5" HorizontalAlignment="Center" Margin="0,4,0,0"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window>

